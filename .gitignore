@@ -1,0 +1,6 @@
+.env
+__pycache__/**/*
+embeddings/**/*
+**/__pycache__
+uploads/**/*  
+app.db
