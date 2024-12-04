@@ -1,39 +1,29 @@
-from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends, Form, UploadFile, Request
+import time
+from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from itsdangerous import URLSafeSerializer
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sqlalchemy.orm import Session
-from config import EMBEDDINGS_DIR, GROQ_API_KEY, SECRET_KEY, UPLOAD_DIR
+from config import EMBEDDINGS_DIR, SECRET_KEY, UPLOAD_DIR
 from cookies import SecureCookieManager, get_current_user
 from middlewares import AuthenticatedStaticFiles
-from models import Chat, ChatMessage, User, File, get_db
 import os
-import shutil
 from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain.chains import ConversationalRetrievalChain
 
-# import huggingface embeddings
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.schema import Document
+from fastapi import Cookie, HTTPException
 
-from sentence_transformers import SentenceTransformer
-from fastapi import Cookie, HTTPException, status
-
-
+from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import os
 
-from utils import process_file, render_markdown_safely
 
 # Load environment variables
 load_dotenv()
 
+
+logger.add("debug.log", level="DEBUG")
+logger.add("error.log", level="ERROR")
+logger.add("info.log", level="INFO")
 
 app = FastAPI()
 
@@ -51,6 +41,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def logging_middleware(request: Request, call_next):
+    start_time = time.time()
+    url = str(request.url).replace(str(request.base_url), "")
+    user_id = request.cookies.get("user_id")
+    user_id = SecureCookieManager().decode_secure_cookie(user_id)
+    logger.info("User ID: {} ", user_id)
+    logger.info("Request: {} path {} ", request.method, url)
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    logger.info(f"Processed {url} in {process_time} seconds")
+    return response
+
+
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 

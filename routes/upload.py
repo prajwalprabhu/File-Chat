@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from langchain_huggingface import HuggingFaceEmbeddings
+from loguru import logger
 from sqlalchemy.orm import Session
 from langchain_community.vectorstores import FAISS
 
-from config import EMBEDDINGS_DIR, UPLOAD_DIR
+from config import EMBEDDINGS_DIR, EMBEDDINGS_MODEL, UPLOAD_DIR
 from cookies import get_current_user
 from models import File, get_db
 from utils import process_file
@@ -82,9 +83,7 @@ def delete_file(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    embeddings_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    embeddings_model = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
     file = db.query(File).filter(File.id == file_id, File.user_id == user_id).first()
     if not file:
         return ""
@@ -105,19 +104,25 @@ def delete_file(
             for doc in vectorstore.docstore._dict.values()
             if doc.metadata.get("file_name") != file.filename
         ]
-        # print(
-        #     set(
-        #         [
-        #             doc.metadata.get("file_name")
-        #             for doc in vectorstore.docstore._dict.values()
-        #         ]
-        #     )
-        # )
-        # os.rmdir(embeddings_path)
-        if filtered_docs:
-            # print(set([doc.metadata.get("file_name") for doc in filtered_docs]))
-            # Recreate index with remaining documents
+        logger.info(
+            "Files {} ",
+            set(
+                [
+                    doc.metadata.get("file_name")
+                    for doc in vectorstore.docstore._dict.values()
+                ]
+            ),
+        )
+        logger.info(
+            "Filtered Files : {}",
+            set([doc.metadata.get("file_name") for doc in filtered_docs]),
+        )
+        # filtered_docs = filtered_docs if len(filtered_docs) > 0 else ["dummy"]
+        if len(filtered_docs) > 0:
             new_vectorstore = FAISS.from_documents(filtered_docs, embeddings_model)
+            new_vectorstore.save_local(embeddings_path)
+        else:
+            new_vectorstore = FAISS.from_texts(["dummy"], embeddings_model)
             new_vectorstore.save_local(embeddings_path)
     if os.path.exists(file.file_path):
         os.remove(file.file_path)

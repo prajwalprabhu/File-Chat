@@ -7,9 +7,10 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from loguru import logger
 from sqlalchemy.orm import Session
 
-from config import EMBEDDINGS_DIR, GROQ_API_KEY
+from config import EMBEDDINGS_DIR, EMBEDDINGS_MODEL, GROQ_API_KEY
 from cookies import get_current_user
 from models import Chat, ChatMessage, File, get_db
 from utils import render_markdown_safely
@@ -17,11 +18,7 @@ from utils import render_markdown_safely
 
 chat_model = ChatGroq(
     api_key=GROQ_API_KEY,
-    model="mixtral-8x7b-32768",
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
+    model="llama3-8b-8192",
 )
 router = APIRouter(prefix="/chat")
 templates = Jinja2Templates(directory="templates")
@@ -163,9 +160,7 @@ def new_chat(
     user_id: int = Depends(get_current_user),
     request: Request = None,
 ):
-    embeddings_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    embeddings_model = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
     chat = None
     if chat_id != -1:
         chat = (
@@ -176,12 +171,13 @@ def new_chat(
         prompt = ChatPromptTemplate.from_template(
             f""""
             This is the user question : {query}
-            based on this generate routerropriate title 
+            based on this generate routerropriate title
             RETURN ONLY TITLE
             """
         )
         llm_chain = prompt | llm | StrOutputParser()
         title = llm_chain.invoke({"query": query}).strip('"').strip("'")
+        logger.info("Title: {}", title)
         chat = Chat(user_id=user_id, title=title)
         db.add(chat)
         db.commit()

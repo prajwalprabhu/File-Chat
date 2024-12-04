@@ -4,3 +4,5 @@ embeddings/**/*
 **/__pycache__
 uploads/**/*  
 app.db
+*.log
+.DS_Store

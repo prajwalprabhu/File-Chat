@@ -70,7 +70,7 @@ def login(
             {"request": request, "error": "Invalid credentials", "title": "Login"},
         )
 
-    cookie_manager = SecureCookieManager(os.getenv("SECRET_KEY"))
+    cookie_manager = SecureCookieManager()
     secure_cookie = cookie_manager.create_secure_cookie(user.id)
 
     response = RedirectResponse(url="/chat", status_code=302)

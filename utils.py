@@ -14,6 +14,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from langchain_community.vectorstores import FAISS
 
+from config import EMBEDDINGS_MODEL
+
 
 def get_loader_for_file(file_path: str):
     file_extension = file_path.split(".")[-1].lower()
@@ -32,9 +34,7 @@ def get_loader_for_file(file_path: str):
 
 
 def process_file(file_path: str, user_id: int, file_name: str, embeddings_dir: str):
-    embeddings_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    embeddings_model = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
     """Processes multiple file types, generates embeddings with metadata, and stores them."""
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
@@ -51,7 +51,8 @@ def process_file(file_path: str, user_id: int, file_name: str, embeddings_dir: s
     loader = LoaderClass(file_path)
     raw_documents = loader.load()
     documents = text_splitter.split_documents(raw_documents)
-
+    logger.info(f"File Name {file_name}")
+    logger.info(f"Documents {len(documents)}")
     for i, doc in enumerate(documents):
         doc.metadata = {
             "user_id": user_id,
@@ -78,6 +79,7 @@ def process_file(file_path: str, user_id: int, file_name: str, embeddings_dir: s
     return embeddings_path
 
 
+from loguru import logger
 from markdown import markdown
 import bleach
 

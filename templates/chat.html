@@ -415,7 +415,7 @@
 </style>
 
 <script>
-  function updateClassName(isShow) {
+  function handleWidth(isShow) {
     const classNamePattern = /col-md-\d+/;
     const rightPanel = document.getElementById("rightPanel");
 
@@ -455,7 +455,7 @@
     const chatColumn = document.getElementById("chat-column");
     const fileColumn = document.getElementById("file-column");
     chatColumn.addEventListener("show.bs.collapse", function () {
-      handlWidth(true);
+      handleWidth(true);
     });
     chatColumn.addEventListener("shown.bs.collapse", function () {
       chatToggleIcon.classList.remove("bi-chevron-right");
@@ -465,10 +465,10 @@
     chatColumn.addEventListener("hidden.bs.collapse", function () {
       chatToggleIcon.classList.remove("bi-chevron-left");
       chatToggleIcon.classList.add("bi-chevron-right");
-      handlWidth(false);
+      handleWidth(false);
     });
     fileColumn.addEventListener("show.bs.collapse", function () {
-      handlWidth(true);
+      handleWidth(true);
     });
     fileColumn.addEventListener("shown.bs.collapse", function () {
       fileToggleIcon.classList.remove("bi-chevron-right");
@@ -478,7 +478,7 @@
     fileColumn.addEventListener("hidden.bs.collapse", function () {
       fileToggleIcon.classList.remove("bi-chevron-left");
       fileToggleIcon.classList.add("bi-chevron-right");
-      handlWidth(false);
+      handleWidth(false);
     });
   });
 
